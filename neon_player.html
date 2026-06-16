@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Stream | Premium Music Player</title>
+    <title>Neon Stream</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'><path d='M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z'/></svg>">
     <!-- Premium Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -272,7 +273,16 @@
 
         .art-collapse-wrapper { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.5s cubic-bezier(0.25, 0.8, 0.25, 1); flex-shrink: 0;}
         .sidebar-right.art-collapsed .art-collapse-wrapper { grid-template-rows: 0fr; }
-        .art-scaler { overflow: hidden; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+        .art-scaler { 
+            overflow: hidden; 
+            min-height: 0; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            /* Expand the clipping box so the large shadow and glow fits perfectly */
+            padding: 20px 0 40px 0; 
+            margin: -20px 0 -30px 0; 
+        }
         .art-container { max-width: 180px; margin: 0 auto; width: 100%; aspect-ratio: 1; border-radius: var(--radius-md); background: linear-gradient(135deg, #2a1b3d, #1a2a3d); box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; border: 1px solid var(--glass-border); flex-shrink: 0; background-size: cover; background-position: center; transition: opacity 0.3s; opacity: 1; }
         .sidebar-right.art-collapsed .art-container { opacity: 0; }
         .art-container::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: inherit; filter: blur(30px); opacity: 0.5; z-index: -1; }
@@ -399,6 +409,63 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .empty-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); text-align: center; }
         .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5; }
+
+        /* Album Play Overlay */
+        .list-view-art { position: relative; overflow: hidden; } /* Ensure list view art acts as a container */
+        
+        .album-play-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border-radius: inherit;
+        }
+        
+        .card-icon:hover .album-play-overlay,
+        .list-view-art:hover .album-play-overlay {
+            opacity: 1;
+        }
+        
+        .btn-play-overlay {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            color: var(--bg-color);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transform: scale(0.8);
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.4);
+        }
+        
+        .list-view-art .btn-play-overlay {
+            width: 32px;
+            height: 32px;
+        }
+
+        .card-icon:hover .btn-play-overlay,
+        .list-view-art:hover .btn-play-overlay {
+            transform: scale(1);
+        }
+        
+        .btn-play-overlay:hover {
+            background: var(--text-main);
+            transform: scale(1.1) !important;
+        }
+        
+        .btn-play-overlay svg { 
+            width: 50%; 
+            height: 50%; 
+            fill: currentColor; 
+        }
     </style>
 </head>
 <body>
@@ -469,7 +536,7 @@
 
             <!-- Load Local Music -->
             <input type="file" id="folder-input" webkitdirectory multiple style="display:none;" onchange="handleFolderSelect(event)">
-            <button class="btn-primary" onclick="initFolderSelection()">
+            <button class="btn-primary" onclick="rescanLibrary()">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
                 Load Local Music
             </button>
@@ -621,7 +688,10 @@
                 <svg id="icon-vol-on" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
                 <svg id="icon-vol-off" viewBox="0 0 24 24" style="display:none;"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.09V4z"/></svg>
             </button>
-            <input type="range" id="volume-bar" value="100" min="0" max="100">
+            <div style="position: relative; display: flex; align-items: center; width: 100px;">
+                <input type="range" id="volume-bar" value="100" min="0" max="100" style="width: 100%;">
+                <div id="vol-tooltip" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(11, 7, 26, 0.95); backdrop-filter: blur(8px); border: 1px solid var(--glass-border); color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100;">100</div>
+            </div>
         </div>
     </footer>
 
@@ -635,17 +705,14 @@
             <h2 id="welcome-title">Welcome</h2>
             <p id="welcome-message">
                 Please select your local music folder to begin listening.
-                <br><br>
-                <span style="font-size: 0.8rem; opacity: 0.7; line-height: 1.4; display: block;">
-                    <strong>Note:</strong> Due to browser privacy and security limitations, you will need to re-select your media folder each time you open the application.
-                </span>
             </p>
             <div class="modal-actions" style="margin-top: 28px;">
-                <button class="btn-outline" onclick="closeOverlay('welcome-overlay')">Close</button>
-                <button class="btn-primary" onclick="handleWelcomeLoad()">
+                <!-- <button class="btn-outline" onclick="closeOverlay('welcome-overlay')">Close</button> -->
+                <button class="btn-primary" id="welcome-load-btn" onclick="handleWelcomeLoad()">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
                     Load Local Music
                 </button>
+                <button class="btn-outline" id="welcome-new-btn" style="display: none;" onclick="initFolderSelection()">New Folder</button>
             </div>
         </div>
     </div>
@@ -751,7 +818,9 @@
     <script>
         // --- Core State ---
         let db;
+        let rootDirectoryHandle = null;
         let allTracks = [];
+        let automixTracks = [];
         let lrcFilesMap = {}; 
         let playlists = []; 
         let globalAlbumArtCache = {}; 
@@ -760,7 +829,9 @@
         let currentViewedTracks = [];
         let currentTrackIndex = -1;
         let currentAudioUrl = null;
+        let fadeAudioUrl = null;
         let isPlaying = false;
+        let isSeeking = false;
         let isShuffle = false;
         let repeatMode = 0; // 0: Off, 1: All, 2: One
         let parsedLyrics = [];
@@ -806,7 +877,7 @@
         let currentEngine = audioMain; // The engine currently in focus
         let masterVolume = 1.0;
         
-        let crossfadeEnabled = false;
+        let crossfadeEnabled = true;
         let crossfadeDuration = 5; // Seconds to overlap
         let isCrossfading = false;
         let crossfadeInterval = null;
@@ -814,6 +885,7 @@
         let sourceNodeMain = null;
         let sourceNodeFade = null;
         let audioMergerNode = null;
+        let masterGainNode = null;
 
         // Audio Normalization State
         let normalizationEnabled = false;
@@ -864,7 +936,7 @@
         // --- IndexedDB Setup ---
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open('NeonStreamDB', 4);
+                const request = indexedDB.open('NeonStreamDB', 5); // Incremented version to 5
                 request.onupgradeneeded = (e) => {
                     const db = e.target.result;
                     if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings');
@@ -872,6 +944,7 @@
                     if (!db.objectStoreNames.contains('manual_lyrics')) db.createObjectStore('manual_lyrics');
                     if (!db.objectStoreNames.contains('ratings')) db.createObjectStore('ratings');
                     if (!db.objectStoreNames.contains('play_stats')) db.createObjectStore('play_stats');
+                    if (!db.objectStoreNames.contains('tracks')) db.createObjectStore('tracks', { keyPath: 'path' }); // New Store
                 };
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => reject(e.target.error);
@@ -962,19 +1035,61 @@
             setupEngine(audioMain);
             setupEngine(audioFade);
             
+            ui.seekBar.addEventListener('mousedown', () => isSeeking = true);
+            ui.seekBar.addEventListener('touchstart', () => isSeeking = true, {passive: true});
+
             ui.seekBar.addEventListener('input', (e) => {
+                // Only update the visuals while dragging
+                updateRangeProgress(e.target);
+                ui.timeCurrent.innerText = formatTime(e.target.value);
+            });
+
+            ui.seekBar.addEventListener('change', (e) => {
+                // Commit the new time to the audio engine only when the user lets go
                 currentEngine.currentTime = e.target.value;
                 if (typeof syncLyrics === 'function') syncLyrics(currentEngine.currentTime);
-                updateRangeProgress(e.target);
+                isSeeking = false;
             });
             
-            const setMasterVolume = (val) => {
+            const setMasterVolume = async (val, saveToDB = true) => {
                 masterVolume = val / 100;
-                if (!isCrossfading) currentEngine.volume = masterVolume;
+                
+                // Atur volume via HTML5 element sebagai fallback
+                audioMain.volume = masterVolume;
+                audioFade.volume = masterVolume;
+                
+                // Atur volume via Web Audio API secara instan jika node sudah terbentuk
+                if (masterGainNode && audioCtx) {
+                    masterGainNode.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
+                }
+                
                 ui.volBar.value = val;
                 updateRangeProgress(ui.volBar);
                 updateMuteIcon();
+
+                // Show Tooltip
+                const tt = document.getElementById('vol-tooltip');
+                if (tt) {
+                    tt.innerText = Math.round(val);
+                    tt.style.opacity = '1';
+                    clearTimeout(window.volTooltipTimeout);
+                    window.volTooltipTimeout = setTimeout(() => {
+                        // Only hide if mouse isn't hovering
+                        if (!ui.volBar.matches(':hover')) tt.style.opacity = '0';
+                    }, 1000);
+                }
+
+                // Save to Database
+                if (saveToDB) {
+                    await dbPut('settings', 'masterVolume', val);
+                }
             };
+
+            // Load saved volume state on startup
+            const savedVol = await dbGet('settings', 'masterVolume');
+            if (savedVol !== null && savedVol !== undefined) {
+                setMasterVolume(savedVol, false); // false = don't rewrite to DB on load
+            }
 
             ui.volBar.addEventListener('input', (e) => setMasterVolume(e.target.value));
             ui.volBar.addEventListener('wheel', (e) => {
@@ -983,6 +1098,19 @@
                 let direction = e.deltaY < 0 ? 1 : -1;
                 let newValue = parseInt(ui.volBar.value) + (direction * step);
                 setMasterVolume(Math.max(0, Math.min(100, newValue)));
+            });
+            
+            // Hover states for the tooltip
+            ui.volBar.addEventListener('mouseenter', () => {
+                const tt = document.getElementById('vol-tooltip');
+                if (tt) {
+                    tt.innerText = Math.round(ui.volBar.value);
+                    tt.style.opacity = '1';
+                }
+            });
+            ui.volBar.addEventListener('mouseleave', () => {
+                const tt = document.getElementById('vol-tooltip');
+                if (tt) tt.style.opacity = '0';
             });
             ui.btnMute.addEventListener('click', () => {
                 if (masterVolume > 0) {
@@ -1000,16 +1128,83 @@
             updateRangeProgress(ui.seekBar);
             updateRangeProgress(ui.volBar);
             
-            const hasVisited = await dbGet('settings', 'hasVisited');
-            if (hasVisited) {
+            const savedHandle = await dbGet('settings', 'mediaFolderHandle');
+            if (savedHandle) {
+                rootDirectoryHandle = savedHandle;
                 document.getElementById('welcome-title').innerText = "Welcome Back!";
+                document.getElementById('welcome-message').innerHTML = `
+                    We found your previously selected music folder.<br><br>
+                    <span style="font-size: 0.8rem; opacity: 0.7; line-height: 1.4; display: block;">
+                        Click below to grant the browser permission to access it again.
+                    </span>
+                `;
+                
+                const loadBtn = document.getElementById('welcome-load-btn');
+                const newBtn = document.getElementById('welcome-new-btn');
+                
+                loadBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg> Restore Access`;
+                newBtn.style.display = 'inline-block';
+                
+                // Clicking restore will query permission first
+                loadBtn.onclick = async () => {
+                    if (await verifyPermission(savedHandle)) {
+                        closeOverlay('welcome-overlay');
+                        const savedTracksList = await dbGetAll('tracks');
+                        if (savedTracksList && savedTracksList.length > 0) {
+                            // FAST PATH: Skip folder scan completely!
+                            await loadLibraryFromDB(savedTracksList);
+                        } else {
+                            // SLOW PATH: First time or cleared cache
+                            await scanDirectory(savedHandle);
+                        }
+                    } else {
+                        alert("Permission denied. Please select the folder again.");
+                        initFolderSelection();
+                    }
+                };
             } else {
                 document.getElementById('welcome-title').innerText = "Welcome to Neon Stream";
             }
+            
             document.getElementById('welcome-overlay').classList.add('active');
             // Ensure resources are cleaned up when page unloads
             window.addEventListener('beforeunload', cleanupResources);
         });
+
+        // --- File System Access API Helpers ---
+        async function verifyPermission(fileHandle, withWrite = false) {
+            const opts = {};
+            if (withWrite) opts.mode = 'readwrite';
+            // Check if permission was already granted
+            if ((await fileHandle.queryPermission(opts)) === 'granted') {
+                return true;
+            }
+            // Request permission from the user
+            if ((await fileHandle.requestPermission(opts)) === 'granted') {
+                return true;
+            }
+            return false;
+        }
+
+        async function getFilesFromDirectory(dirHandle, path = '') {
+            let files = [];
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file') {
+                    const file = await entry.getFile();
+                    // Polyfill webkitRelativePath so existing metadata extraction still works
+                    Object.defineProperty(file, 'webkitRelativePath', {
+                        value: path + entry.name,
+                        writable: false
+                    });
+                    file.fileHandle = entry;
+                    files.push(file);
+                } else if (entry.kind === 'directory') {
+                    const nestedFiles = await getFilesFromDirectory(entry, path + entry.name + '/');
+                    files.push(...nestedFiles);
+                }
+            }
+            return files;
+        }
 
         function updateRangeProgress(el) {
             const min = parseFloat(el.min || 0);
@@ -1383,16 +1578,35 @@
         }
 
         // --- Folder Scan & ID3 ---
-        function initFolderSelection() {
-            document.getElementById('folder-input').click();
+        async function initFolderSelection() {
+            try {
+                // Open Directory Picker
+                const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+                rootDirectoryHandle = dirHandle;
+                // Store the handle in IndexedDB for future sessions
+                await dbPut('settings', 'mediaFolderHandle', dirHandle);
+                closeOverlay('welcome-overlay');
+                await scanDirectory(dirHandle);
+            } catch (err) {
+                console.warn("Directory picker cancelled or failed", err);
+            }
         }
 
-        async function handleFolderSelect(event) {
-            const files = event.target.files;
-            if (!files || files.length === 0) return;
-            
+        async function scanDirectory(dirHandle) {
             document.getElementById('loading-overlay').classList.add('active');
+            document.getElementById('loading-text').innerText = "Reading directory...";
             
+            try {
+                // Recursively fetch all files inside the handle
+                const files = await getFilesFromDirectory(dirHandle, dirHandle.name + '/');
+                await processFiles(files);
+            } catch (err) {
+                console.error("Failed to read directory", err);
+                alert("Failed to read directory. It may have been moved or deleted.");
+            }
+        }
+
+        async function processFiles(files) {
             if (allTracks.length > 0) {
                 const uniqueUrls = new Set(allTracks.map(t => t.pictureUrl).filter(Boolean));
                 uniqueUrls.forEach(url => URL.revokeObjectURL(url));
@@ -1404,12 +1618,17 @@
             
             const countEl = document.getElementById('loading-text');
 
+            // 1. Load the cached library from IndexedDB
+            const savedTracksList = await dbGetAll('tracks');
+            const savedTracksMap = new Map();
+            savedTracksList.forEach(t => savedTracksMap.set(t.path, t));
+
             try {
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     
                     if (i % 25 === 0) {
-                        countEl.innerText = `Scanning ${i} of ${files.length} files... Found ${allTracks.length} tracks`;
+                        countEl.innerText = `Loading ${i} of ${files.length} files...`;
                         await new Promise(resolve => setTimeout(resolve, 1)); 
                     }
                     
@@ -1420,45 +1639,83 @@
                     const pathStr = path.substring(0, path.lastIndexOf('/')) || "";
 
                     if (['mp3', 'mp4', 'm4a', 'wav', 'ogg', 'flac'].includes(ext)) {
-                        let meta = extractMetadataFromPath(file.name, pathStr);
+                        let trackData;
                         
-                        if (ext === 'mp3') {
-                            const id3 = await readID3Tags(file);
-                            if (id3.title) meta.title = id3.title;
-                            if (id3.artist) meta.artist = id3.artist;
-                            if (id3.album) meta.album = id3.album;
-                            if (id3.picture) meta.pictureUrl = id3.picture;
-                            if (id3.trackNumber) meta.trackNumber = id3.trackNumber;
-                            if (id3.discNumber) meta.discNumber = id3.discNumber;
-                            if (id3.genre) meta.genre = id3.genre;
-                        } else if (ext === 'm4a' || ext === 'mp4') {
-                            const m4aMeta = await readMP4Tags(file);
-                            if (m4aMeta.title) meta.title = m4aMeta.title;
-                            if (m4aMeta.artist) meta.artist = m4aMeta.artist;
-                            if (m4aMeta.album) meta.album = m4aMeta.album;
-                            if (m4aMeta.picture) meta.pictureUrl = m4aMeta.picture;
-                            if (m4aMeta.trackNumber) meta.trackNumber = m4aMeta.trackNumber;
-                            if (m4aMeta.discNumber) meta.discNumber = m4aMeta.discNumber;
-                            if (m4aMeta.genre) meta.genre = m4aMeta.genre;
-                        }
-
-                        let realCacheKey = meta.album !== "Unknown Album" ? meta.album : null;
-                        
-                        if (meta.pictureUrl && realCacheKey) {
-                            if (globalAlbumArtCache[realCacheKey]) {
-                                URL.revokeObjectURL(meta.pictureUrl);
-                                meta.pictureUrl = globalAlbumArtCache[realCacheKey];
-                            } else {
-                                globalAlbumArtCache[realCacheKey] = meta.pictureUrl;
+                        // 2. CHECK CACHE FIRST
+                        if (savedTracksMap.has(path)) {
+                            trackData = savedTracksMap.get(path);
+                            trackData.handle = file; // Attach the live File object for playback
+                            trackData.fileHandle = file.fileHandle;
+                            
+                            // Recreate Image URLs from the stored Blob
+                            if (trackData.pictureBlob) {
+                                let realCacheKey = trackData.album !== "Unknown Album" ? trackData.album : null;
+                                if (realCacheKey && globalAlbumArtCache[realCacheKey]) {
+                                    trackData.pictureUrl = globalAlbumArtCache[realCacheKey];
+                                } else {
+                                    trackData.pictureUrl = URL.createObjectURL(trackData.pictureBlob);
+                                    if (realCacheKey) globalAlbumArtCache[realCacheKey] = trackData.pictureUrl;
+                                }
+                            } else if (trackData.internetPictureUrl) {
+                                trackData.pictureUrl = trackData.internetPictureUrl;
                             }
-                        } else if (!meta.pictureUrl && realCacheKey && globalAlbumArtCache[realCacheKey]) {
-                            meta.pictureUrl = globalAlbumArtCache[realCacheKey];
+                        } else {
+                            // 3. PARSE NEW FILE (If not in cache)
+                            let meta = extractMetadataFromPath(file.name, pathStr);
+                            
+                            if (ext === 'mp3') {
+                                const id3 = await readID3Tags(file);
+                                if (id3.title) meta.title = id3.title;
+                                if (id3.artist) meta.artist = id3.artist;
+                                if (id3.album) meta.album = id3.album;
+                                if (id3.picture) meta.picture = id3.picture;
+                                if (id3.trackNumber) meta.trackNumber = id3.trackNumber;
+                                if (id3.discNumber) meta.discNumber = id3.discNumber;
+                                if (id3.genre) meta.genre = id3.genre;
+                            } else if (ext === 'm4a' || ext === 'mp4') {
+                                const m4aMeta = await readMP4Tags(file);
+                                if (m4aMeta.title) meta.title = m4aMeta.title;
+                                if (m4aMeta.artist) meta.artist = m4aMeta.artist;
+                                if (m4aMeta.album) meta.album = m4aMeta.album;
+                                if (m4aMeta.picture) meta.picture = m4aMeta.picture;
+                                if (m4aMeta.trackNumber) meta.trackNumber = m4aMeta.trackNumber;
+                                if (m4aMeta.discNumber) meta.discNumber = m4aMeta.discNumber;
+                                if (m4aMeta.genre) meta.genre = m4aMeta.genre;
+                            }
+
+                            // Convert Blob to URL for the UI
+                            if (meta.picture) {
+                                meta.pictureBlob = meta.picture;
+                                delete meta.picture;
+                                
+                                let realCacheKey = meta.album !== "Unknown Album" ? meta.album : null;
+                                if (realCacheKey && globalAlbumArtCache[realCacheKey]) {
+                                    meta.pictureUrl = globalAlbumArtCache[realCacheKey];
+                                } else {
+                                    meta.pictureUrl = URL.createObjectURL(meta.pictureBlob);
+                                    if (realCacheKey) globalAlbumArtCache[realCacheKey] = meta.pictureUrl;
+                                }
+                            }
+
+                            trackData = {
+                                id: 'track_' + Date.now() + '_' + i,
+                                path: path,
+                                filename: file.name,
+                                fileHandle: file.fileHandle,
+                                ...meta,
+                                internetFetched: false
+                            };
+
+                            // 4. SAVE METADATA TO DATABASE
+                            const dbData = { ...trackData };
+                            delete dbData.handle;     // Don't save live File references
+                            delete dbData.pictureUrl; // Don't save transient ObjectURLs
+                            await dbPut('tracks', null, dbData);
+
+                            trackData.handle = file; // Attach for immediate playback
                         }
 
-                        allTracks.push({
-                            id: 'track_' + i + '_' + Date.now(),
-                            handle: file, path: path, filename: file.name, ...meta
-                        });
+                        allTracks.push(trackData);
                         
                     } else if (ext === 'lrc') {
                         lrcFilesMap[path.replace(/\.lrc$/i, '')] = file;
@@ -1466,9 +1723,7 @@
                 }
                 
                 const ratingsMap = await dbGetRatingsMap();
-                allTracks.forEach(t => {
-                    t.rating = ratingsMap[t.path] || 0;
-                });
+                allTracks.forEach(t => t.rating = ratingsMap[t.path] || 0);
                 
                 countEl.innerText = `Finalizing ${allTracks.length} tracks...`;
                 allTracks.sort((a, b) => a.title.localeCompare(b.title));
@@ -1480,6 +1735,13 @@
             closeOverlay('loading-overlay');
         }
 
+        async function handleWelcomeLoad() {
+            await dbPut('settings', 'hasVisited', true);
+            closeOverlay('welcome-overlay');
+            initFolderSelection();
+        }
+
+        // Load Data
         function extractMetadataFromPath(filename, pathStr) {
             let name = filename.replace(/\.[^/.]+$/, ""); 
             let artist = "Unknown Artist", album = "Unknown Album", title = name, trackNumber = null;
@@ -1510,6 +1772,49 @@
                 }
             }
             return { artist, album, title, trackNumber, discNumber: null, pictureUrl: null, genre: 'Unknown Genre', internetFetched: false };
+        }
+
+        async function loadLibraryFromDB(savedTracksList) {
+            document.getElementById('loading-overlay').classList.add('active');
+            document.getElementById('loading-text').innerText = "Loading library instantly...";
+            
+            allTracks = [];
+            lrcFilesMap = {};
+            globalAlbumArtCache = {};
+            
+            for (let trackData of savedTracksList) {
+                // Re-hydrate images
+                if (trackData.pictureBlob) {
+                    let realCacheKey = trackData.album !== "Unknown Album" ? trackData.album : null;
+                    if (realCacheKey && globalAlbumArtCache[realCacheKey]) {
+                        trackData.pictureUrl = globalAlbumArtCache[realCacheKey];
+                    } else {
+                        trackData.pictureUrl = URL.createObjectURL(trackData.pictureBlob);
+                        if (realCacheKey) globalAlbumArtCache[realCacheKey] = trackData.pictureUrl;
+                    }
+                } else if (trackData.internetPictureUrl) {
+                    trackData.pictureUrl = trackData.internetPictureUrl;
+                }
+                allTracks.push(trackData);
+            }
+            
+            const ratingsMap = await dbGetRatingsMap();
+            allTracks.forEach(t => t.rating = ratingsMap[t.path] || 0);
+            
+            allTracks.sort((a, b) => a.title.localeCompare(b.title));
+            currentQueue = [...allTracks];
+            switchView('tracks');
+            
+            closeOverlay('loading-overlay');
+        }
+
+        async function rescanLibrary() {
+            const savedHandle = await dbGet('settings', 'mediaFolderHandle');
+            if (savedHandle && await verifyPermission(savedHandle)) {
+                await scanDirectory(savedHandle);
+            } else {
+                initFolderSelection();
+            }
         }
 
         async function readID3Tags(file) {
@@ -1588,7 +1893,8 @@
                 curr++;
             }
             const imgBytes = view.subarray(curr);
-            if (imgBytes.length > 0) return URL.createObjectURL(new Blob([imgBytes], { type: mime || 'image/jpeg' }));
+            // CHANGE: Return raw Blob instead of URL
+            if (imgBytes.length > 0) return new Blob([imgBytes], { type: mime || 'image/jpeg' });
             return null;
         }
 
@@ -1684,8 +1990,7 @@
                                                 meta.genre = new TextDecoder('utf-8').decode(new Uint8Array(moovBuffer, payloadOffset, payloadSize));
                                             } else if (type === 'covr') {
                                                 let mime = flags === 13 ? 'image/jpeg' : (flags === 14 ? 'image/png' : 'image/jpeg');
-                                                let blob = new Blob([new Uint8Array(moovBuffer, payloadOffset, payloadSize)], { type: mime });
-                                                meta.picture = URL.createObjectURL(blob);
+                                                meta.picture = new Blob([new Uint8Array(moovBuffer, payloadOffset, payloadSize)], { type: mime });
                                             } else if (type === 'trkn') {
                                                 if (payloadSize >= 4) {
                                                     meta.trackNumber = dv.getUint8(payloadOffset + 3);
@@ -1726,8 +2031,17 @@
                     const item = data.results[0];
                     if (item.artworkUrl100) {
                         track.pictureUrl = item.artworkUrl100.replace('100x100bb', '600x600bb');
+                        track.internetPictureUrl = track.pictureUrl;
                     }
                     if (track.album === 'Unknown Album' && item.collectionName) track.album = item.collectionName;
+
+                    const dbData = await dbGet('tracks', track.path);
+                    if (dbData) {
+                        dbData.internetPictureUrl = track.internetPictureUrl;
+                        dbData.album = track.album;
+                        dbData.internetFetched = true;
+                        await dbPut('tracks', null, dbData);
+                    }
                     
                     if (currentQueue[currentTrackIndex] === track) {
                         updateArtUI(track.pictureUrl);
@@ -1886,6 +2200,10 @@
                         ui.viewTitle.innerText = pl.name;
                         renderTrackList(pl.trackPaths.map(tp => allTracks.find(t => t.path === tp)).filter(t=>t), 'list', { showArt: true, showAlbum: true, isPlaylist: true, playlistId: pl.id });
                     }
+                } else if (viewName === 'automix') {
+                    const [moodLabel, durationMins] = arg.split('|');
+                    ui.viewTitle.innerText = `Automix: ${moodLabel} (${durationMins}m)`;
+                    renderTrackList(automixTracks, 'list', { showArt: true, showAlbum: true, alphaSort: false });
                 }
             }
 
@@ -2184,6 +2502,11 @@
                         card.innerHTML = `
                             <div class="card-icon">
                                 ${coverArt ? `<img src="${coverArt}" loading="lazy">` : `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>`}
+                                <div class="album-play-overlay">
+                                    <button class="btn-play-overlay" onclick="event.stopPropagation(); playAlbumTracks('${escapeHTML(albumName)}');" data-tooltip="Play Album">
+                                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-title" data-tooltip="${escapeHTML(albumName)}">${escapeHTML(albumName)}</div>
                             <div class="card-subtitle" data-tooltip="${escapeHTML(albumArtist)}">${escapeHTML(albumArtist)}</div>
@@ -2198,6 +2521,11 @@
                         item.innerHTML = `
                             <div class="list-view-art" ${coverArt ? `style="background-image: url(${coverArt})"` : ''}>
                                 ${!coverArt ? `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>` : ''}
+                                <div class="album-play-overlay">
+                                    <button class="btn-play-overlay" onclick="event.stopPropagation(); playAlbumTracks('${escapeHTML(albumName)}');" data-tooltip="Play Album">
+                                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    </button>
+                                </div>
                             </div>
                             <div class="list-view-info">
                                 <div class="list-view-title">${escapeHTML(albumName)}</div>
@@ -2489,6 +2817,20 @@
                     </div>
 
                     <!-- Crossfade Toggle & Duration -->
+                    <!-- Crossfade Master Toggle -->
+                    <div class="setting-row" style="margin-top: 32px;">
+                        <div style="flex: 1;">
+                            <div class="setting-label">Crossfade Audio</div>
+                            <div class="setting-desc">Crossfade between songs</div>
+                        </div>
+                        <div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="crossfade-toggle" ${crossfadeEnabled ? 'checked' : ''}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Crossfade Slider -->
                     <div class="setting-row" style="margin-top: 32px; ${crossfadeEnabled ? '' : 'opacity: 0.5; pointer-events: none;'}" id="crossfade-duration-row">
                         <div style="flex: 1;">
                             <div class="setting-label">Crossfade Duration</div>
@@ -2508,7 +2850,7 @@
                         <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                     </div>
                     <div class="about-title">Neon Stream</div>
-                    <div class="about-version">Version 1.0.0</div>
+                    <div class="about-version">Version 1.5.0</div>
                     <div class="about-copy">&copy; 2026 Neon Stream Media. All rights reserved. <br><br>Built with ❤️ <br>Designed for Desktop environments. </div>
                 </div>
             `;
@@ -2710,7 +3052,7 @@
         }
 
         // Crossfade logic
-        function startCrossfade() {
+        async function startCrossfade() {
             let nextIdx = currentTrackIndex + 1;
             if (nextIdx >= currentQueue.length) {
                 if (repeatMode === 1) nextIdx = 0;
@@ -2718,52 +3060,84 @@
             }
 
             isCrossfading = true;
+            
+            const oldEngine = currentEngine;
+            // Tukar fokus engine pemutar
+            currentEngine = (currentEngine === audioMain) ? audioFade : audioMain;
+            
             currentTrackIndex = nextIdx;
             highlightCurrentTrack();
             
             const track = currentQueue[currentTrackIndex];
+
+            if (!track.handle) {
+                track.handle = await getLiveFileFromPath(track.path);
+            }
             
-            // Swap Engines
-            const oldEngine = currentEngine;
-            currentEngine = (currentEngine === audioMain) ? audioFade : audioMain;
+            if (currentEngine === audioMain) {
+                if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+                currentAudioUrl = URL.createObjectURL(track.handle);
+                currentEngine.src = currentAudioUrl;
+            } else {
+                if (fadeAudioUrl) URL.revokeObjectURL(fadeAudioUrl);
+                fadeAudioUrl = URL.createObjectURL(track.handle);
+                currentEngine.src = fadeAudioUrl;
+            }
+
+            currentEngine.volume = 0; 
             
-            currentEngine.src = URL.createObjectURL(track.handle);
-            currentEngine.volume = 0; // Start silent
+            // Inisialisasi grafik audio jika belum aktif
+            initAudioContext();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
             
-            if (visualizerEnabled || normalizationEnabled || spatialEnabled || bassBoostLevel > 0) initAudioContext();
+            // Jalankan trek baru
             currentEngine.play().catch(e => console.error("Crossfade play failed", e));
             
+            // --- PROSES WEB AUDIO API CROSSFADING ---
+            if (audioCtx) {
+                const currTime = audioCtx.currentTime;
+                
+                // Matikan schedule lama jika ada gangguan
+                try {
+                    oldEngine.volume = masterVolume;
+                    currentEngine.volume = masterVolume;
+                } catch(e){}
+                
+                // Menggunakan metode memudarkan native elemen secara pararel agar aman
+                let steps = 40;
+                let stepTime = (crossfadeDuration * 1000) / steps;
+                let currentStep = 0;
+                
+                clearInterval(crossfadeInterval);
+                crossfadeInterval = setInterval(() => {
+                    currentStep++;
+                    let ratio = currentStep / steps;
+                    
+                    // Jalankan fader bersilangan langsung pada gain hardware
+                    oldEngine.volume = Math.max(0, masterVolume * (1 - ratio));
+                    currentEngine.volume = Math.min(masterVolume, masterVolume * ratio);
+                    
+                    if (currentStep >= steps) {
+                        clearInterval(crossfadeInterval);
+                        oldEngine.pause();
+                        oldEngine.removeAttribute('src');
+                        oldEngine.volume = masterVolume;
+                        currentEngine.volume = masterVolume;
+                        isCrossfading = false;
+                    }
+                }, stepTime);
+            }
+
+            // Sinkronisasi komponen UI teks player kamu
             ui.npTitle.innerText = track.title;
             ui.npArtist.innerText = track.artist;
             ui.btmTitle.innerText = track.title;
             ui.btmArtist.innerText = track.artist;
             checkMarquee();
             updateArtUI(track.pictureUrl);
+            
             if (typeof fetchInternetMetadata === 'function') fetchInternetMetadata(track);
             if (typeof loadLyrics === 'function') loadLyrics(track);
-
-            // Execute the fade animation
-            const fadeSteps = 50;
-            const stepTime = (crossfadeDuration * 1000) / fadeSteps;
-            let step = 0;
-            
-            clearInterval(crossfadeInterval);
-            crossfadeInterval = setInterval(() => {
-                step++;
-                const fadeRatio = step / fadeSteps;
-                
-                oldEngine.volume = Math.max(0, masterVolume * (1 - fadeRatio));
-                currentEngine.volume = Math.min(masterVolume, masterVolume * fadeRatio);
-                
-                if (step >= fadeSteps) {
-                    clearInterval(crossfadeInterval);
-                    oldEngine.pause();
-                    oldEngine.removeAttribute('src');
-                    oldEngine.volume = masterVolume; // Reset for future use
-                    currentEngine.volume = masterVolume;
-                    isCrossfading = false;
-                }
-            }, stepTime);
         }
 
         // Main play function
@@ -2785,6 +3159,10 @@
             if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
 
             try {
+                if (!track.handle) {
+                    track.handle = await getLiveFileFromPath(track.path);
+                }
+
                 currentAudioUrl = URL.createObjectURL(track.handle);
                 currentEngine.pause();
                 currentEngine.src = currentAudioUrl;
@@ -2922,9 +3300,13 @@
 
         function updateProgress() {
             if(!currentEngine.duration) return;
-            ui.seekBar.value = currentEngine.currentTime;
-            updateRangeProgress(ui.seekBar);
-            ui.timeCurrent.innerText = formatTime(currentEngine.currentTime);
+            
+            if (!isSeeking) {
+                ui.seekBar.value = currentEngine.currentTime;
+                updateRangeProgress(ui.seekBar);
+                ui.timeCurrent.innerText = formatTime(currentEngine.currentTime);
+            }
+
             if (typeof syncLyrics === 'function') syncLyrics(currentEngine.currentTime);
 
             // Crossfade Trigger Math
@@ -3338,6 +3720,7 @@
             
             try {
                 audioMergerNode.disconnect();
+                if (masterGainNode) masterGainNode.disconnect();
                 if (compressorNode) compressorNode.disconnect();
                 if (bassNode) bassNode.disconnect();
                 if (dryGainNode) dryGainNode.disconnect();
@@ -3346,7 +3729,13 @@
                 analyser.disconnect();
             } catch(e) { }
 
-            let currentNode = audioMergerNode; // Both engines flow from here
+            // Buat masterGainNode jika belum ada
+            if (!masterGainNode) {
+                masterGainNode = audioCtx.createGain();
+            }
+            masterGainNode.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
+
+            let currentNode = audioMergerNode; 
 
             if (typeof normalizationEnabled !== 'undefined' && normalizationEnabled && compressorNode) {
                 currentNode.connect(compressorNode);
@@ -3369,7 +3758,9 @@
                 currentNode.connect(analyser);
             }
 
-            analyser.connect(audioCtx.destination);
+            // Alirkan dari analyser menuju masterGainNode baru ke speaker destination
+            analyser.connect(masterGainNode);
+            masterGainNode.connect(audioCtx.destination);
         }
 
         // --- Lyrics Engine ---
@@ -3633,15 +4024,15 @@
             
             // 4. Fire the Engine
             setQueue(selectedTracks, 0);
+            automixTracks = selectedTracks; // Save to global state
             closeOverlay('automix-modal');
             
-            // 5. Update UI Context
+            // 5. Update UI Context using the View Router
             let moodLabel = mood.charAt(0).toUpperCase() + mood.slice(1);
             if (mood === 'any') moodLabel = "Surprise Me";
             
-            ui.viewTitle.innerText = `Automix: ${moodLabel} (${durationMins}m)`;
-            currentActiveView = 'automix'; // Temporarily override active view state
-            renderTrackList(selectedTracks, 'list', { showArt: true, showAlbum: true, alphaSort: false });
+            // Send the mood and duration as arguments to the router
+            switchView('automix', moodLabel + '|' + durationMins);
         }
 
         // Regular Playlist Management
@@ -3785,6 +4176,42 @@
         function closeOverlay(id) { document.getElementById(id).classList.remove('active'); }
         function escapeHTML(str) {
             return String(str||'').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Load Data Helper
+        async function getLiveFileFromPath(fullPath) {
+            if (!rootDirectoryHandle) return null;
+            try {
+                const parts = fullPath.split('/');
+                if (parts.length > 1) {
+                    parts.shift(); // Remove the root folder name from the path ONLY if there is one
+                }
+                
+                let currentHandle = rootDirectoryHandle;
+                // Traverse down the subfolders
+                for (let i = 0; i < parts.length - 1; i++) {
+                    currentHandle = await currentHandle.getDirectoryHandle(parts[i]);
+                }
+                // Get the final file
+                const fileHandle = await currentHandle.getFileHandle(parts[parts.length - 1]);
+                return await fileHandle.getFile();
+            } catch (err) {
+                console.error("Failed to fetch live file for:", fullPath, err);
+                return null;
+            }
+        }
+
+        // --- Album Play Helper ---
+        function playAlbumTracks(albumName) {
+            const tracks = allTracks.filter(t => t.album === albumName);
+            // Sort them properly by disc and track number before playing
+            tracks.sort((a,b) => {
+                const discA = a.discNumber || 1;
+                const discB = b.discNumber || 1;
+                if (discA !== discB) return discA - discB;
+                return (a.trackNumber || 0) - (b.trackNumber || 0);
+            });
+            if (tracks.length > 0) playList(tracks);
         }
     </script>
 </body>
