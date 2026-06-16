@@ -67,7 +67,7 @@ Neon Stream is a browser-based local music player with a neon-themed UI, rich li
 3. Select your music folder.
 4. Browse the library and start playing.
 
-> Note: browsers require you to re-select the folder each time you reopen the app.
+> Note: browsers require you re-authorize file access each time you reopen the app.
 
 ## Storage
 
