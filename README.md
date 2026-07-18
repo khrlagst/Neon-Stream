@@ -62,12 +62,31 @@ Neon Stream is a browser-based local music player with a neon-themed UI, rich li
 
 ## How to use
 
-1. Open `neon_player.html` in a modern desktop browser.
+1. Open `neon_player.html` (or visit the served `index.html`) in a modern desktop browser.
 2. Click **Load Local Music**.
 3. Select your music folder.
 4. Browse the library and start playing.
 
-> Note: browsers require you to re-select the folder each time you reopen the app.
+Note: browsers may require you to re-select the folder each time you reopen the app.
+
+## Developer quick-run
+
+Start the backend server and run integration tests:
+
+```bash
+cd backend
+npm ci
+node server.js
+# in another terminal from repo root
+node tests/backend_integration.js
+```
+
+Run headless playback smoke test (requires Puppeteer):
+
+```bash
+npm ci
+node tests/headless_playback.js
+```
 
 ## Storage
 

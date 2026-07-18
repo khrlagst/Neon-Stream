@@ -1,0 +1,29 @@
+{
+  "playlists": [
+    {
+      "id": "pl_mq3ukd2r_9t934mt",
+      "name": "Test Playlist",
+      "trackPaths": [
+        "/tmp/a.mp3"
+      ]
+    },
+    {
+      "id": "pl_mq3um3hc_p1y8m2e",
+      "name": "Test Playlist",
+      "trackPaths": [
+        "/tmp/a.mp3"
+      ]
+    },
+    {
+      "id": "pl_mq3v9yz1_9hd7br5",
+      "name": "TI test",
+      "trackPaths": [
+        "/tmp/x.mp3"
+      ]
+    }
+  ],
+  "ratings": {
+    "/tmp/a.mp3": 4,
+    "/tmp/x.mp3": 5
+  }
+}

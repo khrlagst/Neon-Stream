@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Playback Smoke Tests</title>
+  <style>body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:16px;background:#0f0f12;color:#eee} .ok{color:#6f6} .bad{color:#f66} pre{background:#071; padding:8px;border-radius:6px;opacity:0.06}</style>
+</head>
+<body>
+  <h2>Playback Smoke Tests</h2>
+  <div id="results"></div>
+
+  <script>
+    // Lightweight MockAudio so player code can run in-browser without real media files
+    class MockAudio {
+      constructor(){
+        this._src = '';
+        this.volume = 1;
+        this.currentTime = 0;
+        this.duration = 60;
+        this._playing = false;
+        this._listeners = {};
+        // simulate timeupdate while playing
+        setInterval(()=>{
+          if (this._playing) {
+            this.currentTime += 0.25;
+            this._emit('timeupdate');
+            if (this.currentTime >= this.duration) { this._emit('ended'); this._playing = false; }
+          }
+        }, 250);
+      }
+      play(){ this._playing = true; return Promise.resolve(); }
+      pause(){ this._playing = false; }
+      addEventListener(ev, cb){ this._listeners[ev]=this._listeners[ev]||[]; this._listeners[ev].push(cb); }
+      removeEventListener(ev, cb){ if(!this._listeners[ev]) return; this._listeners[ev]=this._listeners[ev].filter(f=>f!==cb); }
+      _emit(ev){ (this._listeners[ev]||[]).forEach(cb=>cb({ target: this })); }
+      get src(){ return this._src; }
+      set src(v){ this._src = v; this.currentTime = 0; }
+      removeAttribute(){ this._src = ''; }
+    }
+    window.Audio = MockAudio;
+  </script>
+
+  <script type="module">
+    import '../js/app.js';
+    // ensure DOM elements expected by app.js exist
+    const ensure = (id, tag='div') => { if (!document.getElementById(id)){ const el = document.createElement(tag); el.id = id; document.body.appendChild(el); } };
+    ['main-content-area','view-title-text','btn-play-pause','icon-play','icon-pause','btn-shuffle','btn-repeat','seek-bar','volume-bar','time-current','time-total','np-title','np-artist','btm-title','btm-artist','lyrics-container','playlist-nav-container','sidebar-right','right-resizer','main-art-container','mini-art-container','alpha-index','btn-mute','queue-list'].forEach(id=>ensure(id,'div'));
+    // replace bars with inputs for UI.updateRangeProgress
+    const sb = document.getElementById('seek-bar'); sb.tagName === 'INPUT' || (function(){ const i = document.createElement('input'); i.id='seek-bar'; i.type='range'; i.min=0; i.max=100; document.getElementById('seek-bar').replaceWith(i); })();
+    const vb = document.getElementById('volume-bar'); vb.tagName === 'INPUT' || (function(){ const i = document.createElement('input'); i.id='volume-bar'; i.type='range'; i.min=0; i.max=100; document.getElementById('volume-bar').replaceWith(i); })();
+
+    // small test runner
+    async function runTests(){
+      const out = document.getElementById('results');
+      const results = [];
+
+      // prepare tracks
+      window.allTracks = [{ path: 't1', title: 'Track 1' }, { path: 't2', title: 'Track 2' }];
+      window.crossfadeDuration = 1; // speed up
+
+      try {
+        window.setQueue(window.allTracks, 0);
+        await new Promise(r => setTimeout(r, 50));
+        results.push({ name: 'playStarted', ok: !!window.isPlaying });
+
+        window.nextTrack();
+        await new Promise(r => setTimeout(r, 50));
+        results.push({ name: 'nextTrack', idx: window.currentTrackIndex, ok: window.currentTrackIndex === 1 });
+
+        window.prevTrack();
+        await new Promise(r => setTimeout(r, 50));
+        results.push({ name: 'prevTrack', idx: window.currentTrackIndex, ok: window.currentTrackIndex === 0 });
+
+        window.startCrossfade();
+        results.push({ name: 'crossfadeStarted', ok: window.isCrossfading === true });
+        await new Promise(r => setTimeout(r, 1500));
+        results.push({ name: 'crossfadeEnded', ok: window.isCrossfading === false, idx: window.currentTrackIndex });
+      } catch (e){ results.push({ name: 'exception', ok: false, error: String(e) }); }
+
+      // render
+      out.innerHTML = results.map(r => `<div>${r.ok ? '<span class="ok">OK</span>' : '<span class="bad">FAIL</span>'} ${r.name} ${r.idx!==undefined?(' idx='+r.idx):''} ${r.error?('<pre>'+r.error+'</pre>'):''}</div>`).join('');
+      console.log('Playback smoke results', results);
+    }
+
+    // wait a moment for app wiring
+    setTimeout(runTests, 200);
+  </script>
+</body>
+</html>

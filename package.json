@@ -1,0 +1,11 @@
+{
+  "name": "neon-stream",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "puppeteer": "^25.1.0"
+  },
+  "scripts": {
+    "test:headless": "node tests/headless_playback.js"
+  }
+}
